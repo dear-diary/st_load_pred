@@ -47,6 +47,9 @@ if uploaded_file is not None:
     his_load_df['account_no'] = his_load_df['account_no'].astype(str).str.replace(r'\.0$', '', regex=True)
     his_load_df['meter_code'] = his_load_df['meter_code'].astype(str).str.replace(r'\.0$', '', regex=True)
 
+    # 去除未授权用户
+    his_load_df = his_load_df[his_load_df['authorization'] != '未授权']
+
     # 创建数据连接
     conn = get_sqlite_conn()
     message1 = save_load(his_load_df, conn, 'his_load')

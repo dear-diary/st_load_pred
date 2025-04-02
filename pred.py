@@ -63,22 +63,16 @@ def get_date_week(date):
 def similar_day_forecast(custom_name, forecast_days):
     forecasted_days = 0
     day_index = 1
-    # 获取历史数据
-    his_start = get_delta_date(-history_days + delta_day)
-    his_end = get_delta_date(delta_day - 1)
-    his_df = get_history_data(custom_name, his_start, his_end)
-    his_df[['date', 'time']] = his_df['date_time'].str.split(' ', expand=True)
-    his_df = his_df.drop(columns=['date_time'])
 
     conn = get_sqlite_conn()
-    while forecasted_days < forecast_days:
+    while forecasted_days < forecast_days:  # while遍历预测天数
         forecast_date = get_delta_date(delta_day + day_index)
         date_type = get_date_type(forecast_date)
         if date_type == WORKDAY:  # 如果不是工作日那就跳过，也就是要预测forecast_days天数的工作日
             forecasted_days += 1
         if date_type != HOLIDAY:  # 工作日的预测逻辑
-            forecast_df = normal_forecast(forecast_date, his_df)
-        else:  # 节假日的预测逻辑
+            forecast_df = normal_forecast(forecast_date, custom_name)
+        else:  # TODO 节假日的预测逻辑有问题
             forecast_df = holiday_forecast(forecast_date, custom_name)
         if forecast_df is not None:
             forecast_df['custom_name'] = custom_name
@@ -123,7 +117,17 @@ def holiday_forecast(forecast_date, custom_name):
 
 
 # 一般天的预测
-def normal_forecast(forecast_date, his_df):
+def normal_forecast(forecast_date, custom_name):
+    # 获取历史数据
+    his_start = get_delta_date(-history_days + delta_day)
+    his_end = get_delta_date(delta_day - 1)
+    his_df = get_history_data(custom_name, his_start, his_end)
+    if his_df.empty:
+        return None
+    his_df[['date', 'time']] = his_df['date_time'].str.split(' ', expand=True)
+    his_df = his_df.drop(columns=['date_time'])
+
+    # 获取日类型
     date_list = his_df['date'].unique().tolist()
     forecast_date_type = get_date_type(forecast_date)
     forecast_date_week = get_date_week(forecast_date)
@@ -169,22 +173,7 @@ def count_week_score(forecast_date_week, his_date_week):
 # 获取通用time_list
 def common_time_list():
     time_list = []
-    for i in range(1, 25):
+    for i in range(0, 24):
         time = str(i).zfill(2) + ':00'
         time_list.append(time)
     return time_list
-
-
-# def daily_aggregate():
-#     forecasted_days = 0
-#     day_index = 1
-#     while forecasted_days < forecast_days:
-#         forecast_date = get_delta_date(delta_day + day_index)
-#         date_type = get_date_type(forecast_date)
-#         if date_type == WORKDAY:  # 如果不是工作日那就跳过，也就是要预测forecast_days天数的工作日
-#             forecasted_days += 1
-#         hourly_df = get_hourly_pred(forecast_date)
-#         if hourly_df is not None:
-#             hourly_df['custom_name'] = '0'
-#             save_daily_pred(hourly_df)
-#         day_index += 1
